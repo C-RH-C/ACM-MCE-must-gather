@@ -17,7 +17,7 @@ REL28=5
 REL29=3
 REL210=0
 
-GENERATION=1712140662
+GENERATION=1713258811
 RETIRED=7689599
 VERSION="1.7.1"
 SOURCE="https://github.com/C-RH-C/ACM-MCE-must-gather/blob/main/acm_create-must-gather.sh"
@@ -172,10 +172,6 @@ mcemgimage() {
 				;;
 				10) if [ "x${ENFORCE}" == "xyes" ]; then
 					VERSION="9:v2.5"
-				   fi
-				;;
-				10) if [ "x${ENFORCE}" == "xyes" ]; then
-					VERSION="2.5"
 				   fi
 				;;
 				*) VERSION='-'
