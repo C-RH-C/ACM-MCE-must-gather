@@ -19,10 +19,25 @@ MCEFIX25=7
 MCEFIX26=5
 MCEFIX27=3
 
+GENERATION=1683279072
+RETIRED=7689599
+VERSION="1.0"
+SOURCE="https://github.com/C-RH-C/ACM-MCE-must-gather/blob/main/acm_create-must-gather.sh"
+
+isretired() {
+	AGE=`date +%s`
+	AGE=$(($AGE - $GENERATION))
+	if [ $AGE -gt $RETIRED ]; then
+		echo "This script is older then 3 months, please check for latest version"
+		echo "The latest version should be available here: $SOURCE"
+	fi
+}
+
 help() {
 	echo -e "Usage: $0 [OPTION]"
 	echo -e "\n\tThis is helper script for collecting"
-	echo -e "\tall must-gathers neccesary for support"
+	echo -e "\tall must-gathers neccesary for support."
+	echo -e "\tSource repository of this script: $SOURCE"
 	echo -e "Options:"
 	echo -e "\t${_bold_}-h${_norm_}\t\tShow this help"
 	echo -e "\t${_bold_}-d <dest>${_norm_}\tSave all gatherred data to this directory."
@@ -32,9 +47,9 @@ help() {
 	echo -e "\t\t\tdo not collect any data"
 	echo -e "\nPrerequisities:"
 	echo -e "\t${_bold_}oc${_norm_} - download actual version from https://console.redhat.com/openshift/downloads."
-	echo -e "\t${_bold_}jq${_norm_} - CLI JSON processor - part of common Linux distributions, for installation check your distro documentation"
+	echo -e "\t${_bold_}jq${_norm_} - CLI JSON processor - part of common Linux distributions, for installation check your distro documentation\n"
+	isretired
 }
-
 
 isupdate() {
 
@@ -198,6 +213,7 @@ then
 	echo "Prerequisities ${_bold_}OK${_norm_}"
 	echo
 
+	isretired
 fi
 
 if ! oc whoami &> /dev/null;
@@ -236,6 +252,7 @@ MCE_IMAGE=`mcemgimage $ACM_VERSION`
 MCE_VERSION=`oc get subs -n multicluster-engine multicluster-engine -o json 2>/dev/null | jq '.status.currentCSV' | sed -e 's/.*\.v//; s/"//'`
 
 echo -e "${_bold_}Detected versions:${_norm_}
+  ${_bold_}* This script:${_norm_} ${VERSION}-${GENERATION}
   ${_bold_}* Cluster:${_norm_}\t$CLUSTER_VERSION
   ${_bold_}* ACM:${_norm_}\t$ACM_VERSION
   ${_bold_}* MCE:${_norm_}\t$MCE_VERSION"
@@ -301,6 +318,9 @@ fi
 
 TIMESTAMP=`date +%s`
 
+echo "Used version: ${VERSION}-${GENERATION}" > "${DIR}/VERSION.txt"
+echo "Command: \"$0 $@\"" >> "${DIR}/VERSION.txt"
+
 echo -n "Creating archive with collected data... "
 
 RETVAL=255
@@ -347,4 +367,3 @@ then
 	echo -e "\tuse following command to gather data from managed cluster:${_norm_}"
 	echo -e "\t# $0 -m $ACM_VERSION -d <dest>"
 fi
-
