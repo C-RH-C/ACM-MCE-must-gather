@@ -10,16 +10,16 @@ _red_="${Esc}[0;31m" #set red
 _boldred_="${Esc}[0;1;31m" #set bold and red.
 
 REL24=99
-REL25=7
-REL26=4
-REL27=3
+REL25=9
+REL26=6
+REL27=4
 REL28=0
 
 MCEFIX25=7
 MCEFIX26=5
 MCEFIX27=3
 
-GENERATION=1683279072
+GENERATION=1685703227
 RETIRED=7689599
 VERSION="1.0"
 SOURCE="https://github.com/C-RH-C/ACM-MCE-must-gather/blob/main/acm_create-must-gather.sh"
