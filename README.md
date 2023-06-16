@@ -61,4 +61,4 @@ The script is tested on Linux distributions.
 
 ## TODO:
   * when executed on HUB cluster, show message like "This script gather data from HUB cluster now. If your issue with ACM affects some managed cluster, please run this script to gather data from managed cluster too." - done
-  * Add functionality to collect data for submariner support
+  * ~~Add functionality to collect data for submariner support~~ - use `-s` parameter to collect submariner data

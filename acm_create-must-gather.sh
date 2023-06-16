@@ -37,19 +37,21 @@ help() {
 	echo -e "Usage: $0 [OPTION]"
 	echo -e "\n\tThis is helper script for collecting"
 	echo -e "\tall must-gathers neccesary for support."
-	echo -e "\tSource repository of this script: $SOURCE"
+	echo -e "\tSource repository of this script: $SOURCE\n"
 	echo -e "Options:"
 	echo -e "\t${_bold_}-h${_norm_}\t\tShow this help"
 	echo -e "\t${_bold_}-d <dest>${_norm_}\tSave all gatherred data to this directory."
 	echo -e "\t\t\tDestination directory must be empty!"
+	echo -e "\t${_bold_}-s${_norm_}\t\tGather data to diagnose Submariner add-on."
 	echo -e "\t${_bold_}-r <registry>${_norm_}\tSpecify own registry in case of registry.redhat.io is not available."
 	echo -e "\t\t\tUse format \"internal.repo.address:port\""
 	echo -e "\t${_bold_}-m <version>${_norm_}\tEnforce ACM version for gather data from managed cluster"
 	echo -e "\t${_bold_}-t${_norm_}\t\tTest run - test all requirements and show executed commands,"
 	echo -e "\t\t\tdo not collect any data"
 	echo -e "\nPrerequisities:"
-	echo -e "\t${_bold_}oc${_norm_} - download actual version from https://console.redhat.com/openshift/downloads."
-	echo -e "\t${_bold_}jq${_norm_} - CLI JSON processor - part of common Linux distributions, for installation check your distro documentation\n"
+	echo -e "\t${_bold_}oc${_norm_}\t- download actual version from https://console.redhat.com/openshift/downloads."
+	echo -e "\t${_bold_}jq${_norm_}\t- CLI JSON processor - part of common Linux distributions, for installation check your distro documentation"
+	echo -e "\t${_bold_}subctl${_norm_}\t- OPTIONAL - Submariner CLI tool, required only when -s specified,\n\t\t  To download follow documetnation: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.7/html/add-ons/add-ons-overview#installing-subctl-command-utility"
 	isretired
 }
 
@@ -174,6 +176,8 @@ ACM_VERSION='-'
 ACM_CHANNEL='-'
 MANAGED='-'
 REGISTRY='registry.redhat.io'
+OWNREGISTRY='-'
+SUBCTL='-'
 
 while getopts tsd:m:r:h flag
 do
@@ -185,7 +189,10 @@ do
 	   ACM_CHANNEL="release-${OPTARG::3}"
 	   MANAGED='yes'
 	;;
-	r) REGISTRY=${OPTSRG};;
+	r) REGISTRY=${OPTARG}
+	   OWNREGISTRY='yes'
+	   ;;
+	s) SUBCTL=yes;;
     esac
 done
 
@@ -204,6 +211,16 @@ then
 	else
 		echo "  * ${_bold_}oc${_norm_} not present, for installation follow https://console.redhat.com/openshift/downloads."
 		exit 2
+	fi
+
+	if [ "x${SUBCTL}" = "xyes" ]; then
+		if type -P subctl > /dev/null;
+		then
+			echo "  * ${_bold_}subctl${_norm_} present..."
+		else
+			echo "  * ${_bold_}subctl${_norm_} not present, for installation follow https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.7/html/add-ons/add-ons-overview#installing-subctl-command-utility."
+			exit 2
+		fi
 	fi
 
 	if type -P jq > /dev/null;
@@ -246,7 +263,7 @@ ACM_IMAGE="UNSUPPORTED"
 MCE_IMAGE="-"
 MCE_VERSION="-"
 
-case $ACM_CHANNEL in
+case ${ACM_CHANNEL:0:11} in
 	release-2.4|release-2.5|release-2.6|release-2.7|release-2.8)
 		ACM_IMAGE="${REGISTRY}/rhacm2/acm-must-gather-rhel8:v${ACM_CHANNEL#release-}"
 	;;
@@ -269,7 +286,7 @@ then
 	exit 5
 fi
 
-echo "${_bold_}Creating must-gather for ACM to '${DIR}/acm/'${_norm_}"
+echo
 
 if [ -d "${DIR}/acm/" ];
 then
@@ -283,17 +300,20 @@ then
 	exit 4
 fi
 
-if [ "XXX$DRY_RUN" == "XXXyes" ];
+if [ "xxx$SUBCTL" != "xxx-" -a -d "${DIR}/subctl/" ];
 then
-	echo "mkdir -p \"${DIR}/acm/\""
-else
-	mkdir -p "${DIR}/acm/"
+	echo "${_bold_}FAIL:${_norm_} destination directory ('${DIR}/subctl/') exists, please select another destination."
+	exit 4
 fi
+
+echo "${_bold_}Creating must-gather for ACM to '${DIR}/acm/'${_norm_}"
 
 if [ "XXX$DRY_RUN" == "XXXyes" ];
 then
+	echo "mkdir -p \"${DIR}/acm/\""
 	echo "oc adm must-gather --image=\"${ACM_IMAGE}\" --dest-dir=\"${DIR}/acm/\" &> \"${DIR}/acm-must-gather.log\""
 else
+	mkdir -p "${DIR}/acm/"
 	oc adm must-gather --image="${ACM_IMAGE}" --dest-dir="${DIR}/acm/" &> "${DIR}/acm-must-gather.log"
 fi
 
@@ -306,13 +326,9 @@ then
 	if [ "XXX$DRY_RUN" == "XXXyes" ];
 	then
 		echo "mkdir -p \"${DIR}/mce/\""
-	else
-		mkdir -p "${DIR}/mce/"
-	fi
-	if [ "XXX$DRY_RUN" == "XXXyes" ];
-	then
 		echo "oc adm must-gather --image=\"${MCE_IMAGE}\" --dest-dir=\"${DIR}/mce/\" &> \"${DIR}/mce-must-gather.log\""
 	else
+		mkdir -p "${DIR}/mce/"
 		oc adm must-gather --image="${MCE_IMAGE}" --dest-dir="${DIR}/mce/" &> "${DIR}/mce-must-gather.log"
 	fi
 
@@ -320,10 +336,35 @@ then
 	echo
 fi
 
+if [ "XXX$SUBCTL" == "XXXyes" ];
+then
+	echo "${_bold_}Collecting data from Submariner to '${DIR}/subctl/'${_norm_}"
+
+	if [ "XXX$DRY_RUN" == "XXXyes" ];
+	then
+		echo "mkdir -p \"${DIR}/subctl/\""
+		echo "subctl diagnose all &> \"${DIR}/subctl-diagnose-all.log\""
+		echo "subctl gather --dir \"${DIR}/subctl/\" &> \"${DIR}/subctl-gather.log\""
+	else
+		mkdir -p "${DIR}/subctl/"
+		subctl diagnose all &> "${DIR}/subctl-diagnose-all.log"
+		subctl gather --dir "${DIR}/subctl/" &> "${DIR}/subctl-gather.log"
+	fi
+
+	echo "${_bold_}Submariner data collecting done${_norm_}"
+	echo
+fi
+
 TIMESTAMP=`date +%s`
 
-echo "Used version: ${VERSION}-${GENERATION}" > "${DIR}/VERSION.txt"
-echo "Command: \"$0 $@\"" >> "${DIR}/VERSION.txt"
+if [ "XXX$DRY_RUN" == "XXXyes" ];
+then
+	echo "Used version: ${VERSION}-${GENERATION}" 
+	echo "Command: \"$0 $@\"" 
+else
+	echo "Used version: ${VERSION}-${GENERATION}" > "${DIR}/VERSION.txt"
+	echo "Command: \"$0 $@\"" >> "${DIR}/VERSION.txt"
+fi
 
 echo -n "Creating archive with collected data... "
 
@@ -345,7 +386,7 @@ then
 	echo "Archive is prepared to be shared with support team."
 else	
 	echo "${_bold_}FAILED${_norm_}. Archive not created."
-	exit 6
+	exit $RETVAL
 fi
 
 
@@ -369,5 +410,8 @@ then
 	echo -e "\tPlease, if you have issue related to some managed cluster,"
 	echo -e "\tlog to affected managed cluster via '${_norm_}oc login ...${_bold_}' and"
 	echo -e "\tuse following command to gather data from managed cluster:${_norm_}"
-	echo -e "\t# $0 -m $ACM_VERSION -d <dest>"
+	echo -en "\t# $0 -m $ACM_VERSION -d <dest> "
+	[ "xxx$OWNREGISTRY" == "xxxyes" ] && echo -en "-r \"${REGISTRY}\" "
+	[ "xxx$SUBCTL" == "xxxyes" ] && echo -en "-s"
+	echo
 fi
