@@ -25,6 +25,12 @@ Common usage is:
 $ acm_create-must-gather.sh -d OUTPUT_DIR
 ```
 
+or with specified own registry (for disconnected env):
+
+```
+$ acm_create-must-gather.sh -d OUTPUT_DIR -r internal.repo.address:port
+```
+
 The `OUTPUT_DIR` must not exists. This dir is created. Output structure:
 
 ```

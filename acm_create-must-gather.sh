@@ -19,9 +19,9 @@ MCEFIX25=7
 MCEFIX26=5
 MCEFIX27=3
 
-GENERATION=1685703227
+GENERATION=1686916233
 RETIRED=7689599
-VERSION="1.0"
+VERSION="1.1"
 SOURCE="https://github.com/C-RH-C/ACM-MCE-must-gather/blob/main/acm_create-must-gather.sh"
 
 isretired() {
@@ -42,6 +42,8 @@ help() {
 	echo -e "\t${_bold_}-h${_norm_}\t\tShow this help"
 	echo -e "\t${_bold_}-d <dest>${_norm_}\tSave all gatherred data to this directory."
 	echo -e "\t\t\tDestination directory must be empty!"
+	echo -e "\t${_bold_}-r <registry>${_norm_}\tSpecify own registry in case of registry.redhat.io is not available."
+	echo -e "\t\t\tUse format \"internal.repo.address:port\""
 	echo -e "\t${_bold_}-m <version>${_norm_}\tEnforce ACM version for gather data from managed cluster"
 	echo -e "\t${_bold_}-t${_norm_}\t\tTest run - test all requirements and show executed commands,"
 	echo -e "\t\t\tdo not collect any data"
@@ -139,19 +141,19 @@ mcemgimage() {
 				4) echo '-'
 				;;
 				5) if [ "${ver[2]}" -lt "$MCEFIX25" ]; then
-					echo "registry.redhat.io/multicluster-engine/must-gather-rhel8:v2.0.0"
+					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.0"
 				   else
 					echo '-'
 				   fi
 				;;
 				6) if [ "${ver[2]}" -lt "$MCEFIX26" ]; then
-					echo "registry.redhat.io/multicluster-engine/must-gather-rhel8:v2.1.0"
+					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.1"
 				   else
 					echo '-'
 				   fi
 				;;
 				7) if [ "${ver[2]}" -lt "$MCEFIX27" ]; then
-					echo "registry.redhat.io/multicluster-engine/must-gather-rhel8:v2.2.0"
+					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.2"
 				   else
 					echo '-'
 				   fi
@@ -171,8 +173,9 @@ mcemgimage() {
 ACM_VERSION='-'
 ACM_CHANNEL='-'
 MANAGED='-'
+REGISTRY='registry.redhat.io'
 
-while getopts td:m:h flag
+while getopts tsd:m:r:h flag
 do
     case "${flag}" in
         t) DRY_RUN=yes;;
@@ -182,6 +185,7 @@ do
 	   ACM_CHANNEL="release-${OPTARG::3}"
 	   MANAGED='yes'
 	;;
+	r) REGISTRY=${OPTSRG};;
     esac
 done
 
@@ -244,7 +248,7 @@ MCE_VERSION="-"
 
 case $ACM_CHANNEL in
 	release-2.4|release-2.5|release-2.6|release-2.7|release-2.8)
-		ACM_IMAGE="registry.redhat.io/rhacm2/acm-must-gather-rhel8:v${ACM_CHANNEL#release-}.0"
+		ACM_IMAGE="${REGISTRY}/rhacm2/acm-must-gather-rhel8:v${ACM_CHANNEL#release-}"
 	;;
 esac
 
