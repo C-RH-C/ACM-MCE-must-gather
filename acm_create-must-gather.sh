@@ -19,9 +19,9 @@ MCEFIX25=7
 MCEFIX26=5
 MCEFIX27=3
 
-GENERATION=1686916233
+GENERATION=1687176791
 RETIRED=7689599
-VERSION="1.1"
+VERSION="1.2"
 SOURCE="https://github.com/C-RH-C/ACM-MCE-must-gather/blob/main/acm_create-must-gather.sh"
 
 isretired() {
@@ -72,6 +72,7 @@ isupdate() {
 					UPDOC="Upgrade to 2.5 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.5/html/install/index"
 				;;
 				5)
+					echo "THIS VERSION WILL BE EOL SOON, PLEASE UPGRADE TO 2.6"
 					if [ "${ver[2]}" -lt "$REL25" ]; then
 						echo "Upgrade available to 2.5.$REL25 or 2.6"
 					else
@@ -97,11 +98,13 @@ isupdate() {
 					if [ "${ver[2]}" -lt "$REL27" ]; then
 						echo "Upgrade available to 2.7.$REL27"
 						UPDOC=""
+					else
+						echo "Upgrade available to 2.8"	
 					fi
 					if [ "${ver[2]}" -lt "3" ]; then
 						AFFECTED_CVE_2023_29017="yes"
 					fi
-					UPDOC="Upgrade to latest 2.7 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.7/html/install/index"
+					UPDOC="Upgrade to 2.8 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.8/html/install/index"
 
 				;;
 				8)
