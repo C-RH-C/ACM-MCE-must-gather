@@ -114,13 +114,13 @@ isupdate() {
 					fi
 				;;
 				*)
-					echo "UNNOWN VERSION: $1"
+					echo "UNKNOWN VERSION: $1"
 				;;
 			esac
 			
 		;;
 		*)
-			echo "UNNOWN VERSION: $1"
+			echo "UNKNOWN VERSION: $1"
 		;;
 	esac
 
