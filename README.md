@@ -11,6 +11,10 @@ Works with ACM version 2.4, 2.5, 2.6, 2.7 and 2.8
 
 This scripts are NOT delivered and/or released by Red Hat. This is an independent project to help customers and Red Hat Support team to export and/or collect the data from Red Hat Advanced Cluster Management and managed clusters for reporting or troubleshooting purposes.
 
+## Disclaimer:
+
+This scripts are NOT delivered and/or released by Red Hat. This is an independent project to help customers and Red Hat Support team to export and/or collect the data from Red Hat Advanced Cluster Management and managed clusters for reporting or troubleshooting purposes.
+
 ## Usage:
 
 Details about usage can be shown be '-h' option:
@@ -58,6 +62,7 @@ The script is tested on Linux distributions.
     this can be checked from `oc adm must-gather ...` output in specified
     dir (acm-must-gather.log and mce-must-gather.log).
     * It is possible to specify own image registry via `-r` parameter
+
 
 
 ## TODO:
