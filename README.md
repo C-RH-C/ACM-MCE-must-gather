@@ -15,10 +15,6 @@ This scripts are NOT delivered and/or released by Red Hat. This is an independen
 
 This scripts are NOT delivered and/or released by Red Hat. This is an independent project to help customers and Red Hat Support team to export and/or collect the data from Red Hat Advanced Cluster Management and managed clusters for reporting or troubleshooting purposes.
 
-## Disclaimer:
-
-This scripts are NOT delivered and/or released by Red Hat. This is an independent project to help customers and Red Hat Support team to export and/or collect the data from Red Hat Advanced Cluster Management and managed clusters for reporting or troubleshooting purposes.
-
 ## Usage:
 
 Details about usage can be shown be '-h' option:
