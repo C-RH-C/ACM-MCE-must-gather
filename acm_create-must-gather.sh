@@ -10,18 +10,18 @@ _red_="${Esc}[0;31m" #set red
 _boldred_="${Esc}[0;1;31m" #set bold and red.
 
 REL24=99
-REL25=7
-REL26=4
-REL27=3
+REL25=9
+REL26=6
+REL27=4
 REL28=0
 
 MCEFIX25=7
 MCEFIX26=5
 MCEFIX27=3
 
-GENERATION=1683279072
+GENERATION=1687176791
 RETIRED=7689599
-VERSION="1.0"
+VERSION="1.2"
 SOURCE="https://github.com/C-RH-C/ACM-MCE-must-gather/blob/main/acm_create-must-gather.sh"
 
 isretired() {
@@ -37,17 +37,23 @@ help() {
 	echo -e "Usage: $0 [OPTION]"
 	echo -e "\n\tThis is helper script for collecting"
 	echo -e "\tall must-gathers neccesary for support."
-	echo -e "\tSource repository of this script: $SOURCE"
+	echo -e "\tSource repository of this script: $SOURCE\n"
 	echo -e "Options:"
 	echo -e "\t${_bold_}-h${_norm_}\t\tShow this help"
 	echo -e "\t${_bold_}-d <dest>${_norm_}\tSave all gatherred data to this directory."
 	echo -e "\t\t\tDestination directory must be empty!"
+	echo -e "\t${_bold_}-s${_norm_}\t\tGather data to diagnose Submariner add-on."
+	echo -e "\t${_bold_}-r <registry>${_norm_}\tSpecify own registry in case of registry.redhat.io is not available."
+	echo -e "\t\t\tUse format \"internal.repo.address:port\""
+	echo -e "\t${_bold_}-l <timeout>${_norm_}\tIn case of gathering data took too long and must-gather timeout,"
+	echo -e "\t\t\tfor requesting longer timeout: https://access.redhat.com/solutions/5227051"
 	echo -e "\t${_bold_}-m <version>${_norm_}\tEnforce ACM version for gather data from managed cluster"
 	echo -e "\t${_bold_}-t${_norm_}\t\tTest run - test all requirements and show executed commands,"
 	echo -e "\t\t\tdo not collect any data"
 	echo -e "\nPrerequisities:"
-	echo -e "\t${_bold_}oc${_norm_} - download actual version from https://console.redhat.com/openshift/downloads."
-	echo -e "\t${_bold_}jq${_norm_} - CLI JSON processor - part of common Linux distributions, for installation check your distro documentation\n"
+	echo -e "\t${_bold_}oc${_norm_}\t- download actual version from https://console.redhat.com/openshift/downloads."
+	echo -e "\t${_bold_}jq${_norm_}\t- CLI JSON processor - part of common Linux distributions, for installation check your distro documentation"
+	echo -e "\t${_bold_}subctl${_norm_}\t- OPTIONAL - Submariner CLI tool, required only when -s specified,\n\t\t  To download follow the documentation: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.7/html/add-ons/add-ons-overview#installing-subctl-command-utility"
 	isretired
 }
 
@@ -66,6 +72,7 @@ isupdate() {
 					UPDOC="Upgrade to 2.5 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.5/html/install/index"
 				;;
 				5)
+					echo "THIS VERSION WILL BE EOL SOON, PLEASE UPGRADE TO 2.6"
 					if [ "${ver[2]}" -lt "$REL25" ]; then
 						echo "Upgrade available to 2.5.$REL25 or 2.6"
 					else
@@ -91,11 +98,13 @@ isupdate() {
 					if [ "${ver[2]}" -lt "$REL27" ]; then
 						echo "Upgrade available to 2.7.$REL27"
 						UPDOC=""
+					else
+						echo "Upgrade available to 2.8"	
 					fi
 					if [ "${ver[2]}" -lt "3" ]; then
 						AFFECTED_CVE_2023_29017="yes"
 					fi
-					UPDOC="Upgrade to latest 2.7 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.7/html/install/index"
+					UPDOC="Upgrade to 2.8 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.8/html/install/index"
 
 				;;
 				8)
@@ -105,13 +114,13 @@ isupdate() {
 					fi
 				;;
 				*)
-					echo "UNNOWN VERSION: $1"
+					echo "UNKNOWN VERSION: $1"
 				;;
 			esac
 			
 		;;
 		*)
-			echo "UNNOWN VERSION: $1"
+			echo "UNKNOWN VERSION: $1"
 		;;
 	esac
 
@@ -139,19 +148,19 @@ mcemgimage() {
 				4) echo '-'
 				;;
 				5) if [ "${ver[2]}" -lt "$MCEFIX25" ]; then
-					echo "registry.redhat.io/multicluster-engine/must-gather-rhel8:v2.0.0"
+					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.0"
 				   else
 					echo '-'
 				   fi
 				;;
 				6) if [ "${ver[2]}" -lt "$MCEFIX26" ]; then
-					echo "registry.redhat.io/multicluster-engine/must-gather-rhel8:v2.1.0"
+					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.1"
 				   else
 					echo '-'
 				   fi
 				;;
 				7) if [ "${ver[2]}" -lt "$MCEFIX27" ]; then
-					echo "registry.redhat.io/multicluster-engine/must-gather-rhel8:v2.2.0"
+					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.2"
 				   else
 					echo '-'
 				   fi
@@ -171,8 +180,12 @@ mcemgimage() {
 ACM_VERSION='-'
 ACM_CHANNEL='-'
 MANAGED='-'
+REGISTRY='registry.redhat.io'
+OWNREGISTRY='-'
+SUBCTL='-'
+LONGRUN=''
 
-while getopts td:m:h flag
+while getopts tsd:m:r:l:h flag
 do
     case "${flag}" in
         t) DRY_RUN=yes;;
@@ -182,6 +195,11 @@ do
 	   ACM_CHANNEL="release-${OPTARG::3}"
 	   MANAGED='yes'
 	;;
+	r) REGISTRY=${OPTARG}
+	   OWNREGISTRY='yes'
+	   ;;
+	s) SUBCTL=yes;;
+	l) LONGRUN="--request-timeout=${OPTARG}";;
     esac
 done
 
@@ -200,6 +218,16 @@ then
 	else
 		echo "  * ${_bold_}oc${_norm_} not present, for installation follow https://console.redhat.com/openshift/downloads."
 		exit 2
+	fi
+
+	if [ "x${SUBCTL}" = "xyes" ]; then
+		if type -P subctl > /dev/null;
+		then
+			echo "  * ${_bold_}subctl${_norm_} present..."
+		else
+			echo "  * ${_bold_}subctl${_norm_} not present, for installation follow https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.7/html/add-ons/add-ons-overview#installing-subctl-command-utility."
+			exit 2
+		fi
 	fi
 
 	if type -P jq > /dev/null;
@@ -242,9 +270,9 @@ ACM_IMAGE="UNSUPPORTED"
 MCE_IMAGE="-"
 MCE_VERSION="-"
 
-case $ACM_CHANNEL in
+case ${ACM_CHANNEL:0:11} in
 	release-2.4|release-2.5|release-2.6|release-2.7|release-2.8)
-		ACM_IMAGE="registry.redhat.io/rhacm2/acm-must-gather-rhel8:v${ACM_CHANNEL#release-}.0"
+		ACM_IMAGE="${REGISTRY}/rhacm2/acm-must-gather-rhel8:v${ACM_CHANNEL#release-}"
 	;;
 esac
 
@@ -265,7 +293,7 @@ then
 	exit 5
 fi
 
-echo "${_bold_}Creating must-gather for ACM to '${DIR}/acm/'${_norm_}"
+echo
 
 if [ -d "${DIR}/acm/" ];
 then
@@ -279,18 +307,21 @@ then
 	exit 4
 fi
 
-if [ "XXX$DRY_RUN" == "XXXyes" ];
+if [ "xxx$SUBCTL" != "xxx-" -a -d "${DIR}/subctl/" ];
 then
-	echo "mkdir -p \"${DIR}/acm/\""
-else
-	mkdir -p "${DIR}/acm/"
+	echo "${_bold_}FAIL:${_norm_} destination directory ('${DIR}/subctl/') exists, please select another destination."
+	exit 4
 fi
+
+echo "${_bold_}Creating must-gather for ACM to '${DIR}/acm/'${_norm_}"
 
 if [ "XXX$DRY_RUN" == "XXXyes" ];
 then
-	echo "oc adm must-gather --image=\"${ACM_IMAGE}\" --dest-dir=\"${DIR}/acm/\" &> \"${DIR}/acm-must-gather.log\""
+	echo "mkdir -p \"${DIR}/acm/\""
+	echo "oc adm must-gather ${LONGRUN} --image=\"${ACM_IMAGE}\" --dest-dir=\"${DIR}/acm/\" &> \"${DIR}/acm-must-gather.log\""
 else
-	oc adm must-gather --image="${ACM_IMAGE}" --dest-dir="${DIR}/acm/" &> "${DIR}/acm-must-gather.log"
+	mkdir -p "${DIR}/acm/"
+	oc adm must-gather ${LONGRUN} --image="${ACM_IMAGE}" --dest-dir="${DIR}/acm/" &> "${DIR}/acm-must-gather.log"
 fi
 
 echo "${_bold_}ACM must-gather done${_norm_}"
@@ -302,24 +333,45 @@ then
 	if [ "XXX$DRY_RUN" == "XXXyes" ];
 	then
 		echo "mkdir -p \"${DIR}/mce/\""
+		echo "oc adm must-gather ${LONGRUN} --image=\"${MCE_IMAGE}\" --dest-dir=\"${DIR}/mce/\" &> \"${DIR}/mce-must-gather.log\""
 	else
 		mkdir -p "${DIR}/mce/"
-	fi
-	if [ "XXX$DRY_RUN" == "XXXyes" ];
-	then
-		echo "oc adm must-gather --image=\"${MCE_IMAGE}\" --dest-dir=\"${DIR}/mce/\" &> \"${DIR}/mce-must-gather.log\""
-	else
-		oc adm must-gather --image="${MCE_IMAGE}" --dest-dir="${DIR}/mce/" &> "${DIR}/mce-must-gather.log"
+		oc adm must-gather ${LONGRUN} --image="${MCE_IMAGE}" --dest-dir="${DIR}/mce/" &> "${DIR}/mce-must-gather.log"
 	fi
 
 	echo "${_bold_}MCE must-gather done${_norm_}"
 	echo
 fi
 
+if [ "XXX$SUBCTL" == "XXXyes" ];
+then
+	echo "${_bold_}Collecting data from Submariner to '${DIR}/subctl/'${_norm_}"
+
+	if [ "XXX$DRY_RUN" == "XXXyes" ];
+	then
+		echo "mkdir -p \"${DIR}/subctl/\""
+		echo "subctl diagnose all &> \"${DIR}/subctl-diagnose-all.log\""
+		echo "subctl gather --dir \"${DIR}/subctl/\" &> \"${DIR}/subctl-gather.log\""
+	else
+		mkdir -p "${DIR}/subctl/"
+		subctl diagnose all &> "${DIR}/subctl-diagnose-all.log"
+		subctl gather --dir "${DIR}/subctl/" &> "${DIR}/subctl-gather.log"
+	fi
+
+	echo "${_bold_}Submariner data collecting done${_norm_}"
+	echo
+fi
+
 TIMESTAMP=`date +%s`
 
-echo "Used version: ${VERSION}-${GENERATION}" > "${DIR}/VERSION.txt"
-echo "Command: \"$0 $@\"" >> "${DIR}/VERSION.txt"
+if [ "XXX$DRY_RUN" == "XXXyes" ];
+then
+	echo "Used version: ${VERSION}-${GENERATION}" 
+	echo "Command: \"$0 $@\"" 
+else
+	echo "Used version: ${VERSION}-${GENERATION}" > "${DIR}/VERSION.txt"
+	echo "Command: \"$0 $@\"" >> "${DIR}/VERSION.txt"
+fi
 
 echo -n "Creating archive with collected data... "
 
@@ -341,7 +393,7 @@ then
 	echo "Archive is prepared to be shared with support team."
 else	
 	echo "${_bold_}FAILED${_norm_}. Archive not created."
-	exit 6
+	exit $RETVAL
 fi
 
 
@@ -365,5 +417,8 @@ then
 	echo -e "\tPlease, if you have issue related to some managed cluster,"
 	echo -e "\tlog to affected managed cluster via '${_norm_}oc login ...${_bold_}' and"
 	echo -e "\tuse following command to gather data from managed cluster:${_norm_}"
-	echo -e "\t# $0 -m $ACM_VERSION -d <dest>"
+	echo -en "\t# $0 -m $ACM_VERSION -d <dest> "
+	[ "xxx$OWNREGISTRY" == "xxxyes" ] && echo -en "-r \"${REGISTRY}\" "
+	[ "xxx$SUBCTL" == "xxxyes" ] && echo -en "-s"
+	echo
 fi
