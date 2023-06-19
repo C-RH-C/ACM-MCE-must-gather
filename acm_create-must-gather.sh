@@ -45,13 +45,15 @@ help() {
 	echo -e "\t${_bold_}-s${_norm_}\t\tGather data to diagnose Submariner add-on."
 	echo -e "\t${_bold_}-r <registry>${_norm_}\tSpecify own registry in case of registry.redhat.io is not available."
 	echo -e "\t\t\tUse format \"internal.repo.address:port\""
+	echo -e "\t${_bold_}-l <timeout>${_norm_}\tIn case of gathering data took too long and must-gather timeout,"
+	echo -e "\t\t\tfor requesting longer timeout: https://access.redhat.com/solutions/5227051"
 	echo -e "\t${_bold_}-m <version>${_norm_}\tEnforce ACM version for gather data from managed cluster"
 	echo -e "\t${_bold_}-t${_norm_}\t\tTest run - test all requirements and show executed commands,"
 	echo -e "\t\t\tdo not collect any data"
 	echo -e "\nPrerequisities:"
 	echo -e "\t${_bold_}oc${_norm_}\t- download actual version from https://console.redhat.com/openshift/downloads."
 	echo -e "\t${_bold_}jq${_norm_}\t- CLI JSON processor - part of common Linux distributions, for installation check your distro documentation"
-	echo -e "\t${_bold_}subctl${_norm_}\t- OPTIONAL - Submariner CLI tool, required only when -s specified,\n\t\t  To download follow documetnation: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.7/html/add-ons/add-ons-overview#installing-subctl-command-utility"
+	echo -e "\t${_bold_}subctl${_norm_}\t- OPTIONAL - Submariner CLI tool, required only when -s specified,\n\t\t  To download follow the documentation: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.7/html/add-ons/add-ons-overview#installing-subctl-command-utility"
 	isretired
 }
 
@@ -178,8 +180,9 @@ MANAGED='-'
 REGISTRY='registry.redhat.io'
 OWNREGISTRY='-'
 SUBCTL='-'
+LONGRUN=''
 
-while getopts tsd:m:r:h flag
+while getopts tsd:m:r:l:h flag
 do
     case "${flag}" in
         t) DRY_RUN=yes;;
@@ -193,6 +196,7 @@ do
 	   OWNREGISTRY='yes'
 	   ;;
 	s) SUBCTL=yes;;
+	l) LONGRUN="--request-timeout=${OPTARG}";;
     esac
 done
 
@@ -311,10 +315,10 @@ echo "${_bold_}Creating must-gather for ACM to '${DIR}/acm/'${_norm_}"
 if [ "XXX$DRY_RUN" == "XXXyes" ];
 then
 	echo "mkdir -p \"${DIR}/acm/\""
-	echo "oc adm must-gather --image=\"${ACM_IMAGE}\" --dest-dir=\"${DIR}/acm/\" &> \"${DIR}/acm-must-gather.log\""
+	echo "oc adm must-gather ${LONGRUN} --image=\"${ACM_IMAGE}\" --dest-dir=\"${DIR}/acm/\" &> \"${DIR}/acm-must-gather.log\""
 else
 	mkdir -p "${DIR}/acm/"
-	oc adm must-gather --image="${ACM_IMAGE}" --dest-dir="${DIR}/acm/" &> "${DIR}/acm-must-gather.log"
+	oc adm must-gather ${LONGRUN} --image="${ACM_IMAGE}" --dest-dir="${DIR}/acm/" &> "${DIR}/acm-must-gather.log"
 fi
 
 echo "${_bold_}ACM must-gather done${_norm_}"
@@ -326,10 +330,10 @@ then
 	if [ "XXX$DRY_RUN" == "XXXyes" ];
 	then
 		echo "mkdir -p \"${DIR}/mce/\""
-		echo "oc adm must-gather --image=\"${MCE_IMAGE}\" --dest-dir=\"${DIR}/mce/\" &> \"${DIR}/mce-must-gather.log\""
+		echo "oc adm must-gather ${LONGRUN} --image=\"${MCE_IMAGE}\" --dest-dir=\"${DIR}/mce/\" &> \"${DIR}/mce-must-gather.log\""
 	else
 		mkdir -p "${DIR}/mce/"
-		oc adm must-gather --image="${MCE_IMAGE}" --dest-dir="${DIR}/mce/" &> "${DIR}/mce-must-gather.log"
+		oc adm must-gather ${LONGRUN} --image="${MCE_IMAGE}" --dest-dir="${DIR}/mce/" &> "${DIR}/mce-must-gather.log"
 	fi
 
 	echo "${_bold_}MCE must-gather done${_norm_}"
