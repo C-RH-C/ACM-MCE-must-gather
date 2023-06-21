@@ -21,7 +21,7 @@ MCEFIX27=3
 
 GENERATION=1687176791
 RETIRED=7689599
-VERSION="1.2"
+VERSION="1.3"
 SOURCE="https://github.com/C-RH-C/ACM-MCE-must-gather/blob/main/acm_create-must-gather.sh"
 
 isretired() {
@@ -141,31 +141,37 @@ mcemgimage() {
 	IFS='.'
 	read -r -a ver <<< "$1"
 
+	ENFORCE="$2"
+
 	#echo ">>>$1>>>${ver[0]}>${ver[1]}>${ver[2]}>" >&2
 	case ${ver[0]} in
 		2)
 			case ${ver[1]} in
 				4) echo '-'
 				;;
-				5) if [ "${ver[2]}" -lt "$MCEFIX25" ]; then
+				5) if [ "${ver[2]}" -lt "$MCEFIX25" -o "x${ENFORCE}" == "xyes" ]; then
 					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.0"
 				   else
 					echo '-'
 				   fi
 				;;
-				6) if [ "${ver[2]}" -lt "$MCEFIX26" ]; then
+				6) if [ "${ver[2]}" -lt "$MCEFIX26" -o "x${ENFORCE}" == "xyes" ]; then
 					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.1"
 				   else
 					echo '-'
 				   fi
 				;;
-				7) if [ "${ver[2]}" -lt "$MCEFIX27" ]; then
+				7) if [ "${ver[2]}" -lt "$MCEFIX27" -o "x${ENFORCE}" == "xyes" ]; then
 					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.2"
 				   else
 					echo '-'
 				   fi
 				;;
-				8) echo '-'
+				8) if [ "x${ENFORCE}" == "xyes" ]; then
+					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.3"
+				   else
+					echo '-'
+				   fi
 				;;
 				*) echo '-'
 				;;
@@ -184,8 +190,15 @@ REGISTRY='registry.redhat.io'
 OWNREGISTRY='-'
 SUBCTL='-'
 LONGRUN=''
+MCE_ENFORCE='-'
 
-while getopts tsd:m:r:l:h flag
+###
+#
+# Parameter -M not documented, enforce creating MCE m-g
+#
+###
+
+while getopts tsMd:m:r:l:h flag
 do
     case "${flag}" in
         t) DRY_RUN=yes;;
@@ -200,6 +213,7 @@ do
 	   ;;
 	s) SUBCTL=yes;;
 	l) LONGRUN="--request-timeout=${OPTARG}";;
+	M) MCE_ENFORCE='yes';;
     esac
 done
 
@@ -276,7 +290,7 @@ case ${ACM_CHANNEL:0:11} in
 	;;
 esac
 
-MCE_IMAGE=`mcemgimage $ACM_VERSION`
+MCE_IMAGE=`mcemgimage $ACM_VERSION $MCE_ENFORCE`
 MCE_VERSION=`oc get subs -n multicluster-engine multicluster-engine -o json 2>/dev/null | jq '.status.currentCSV' | sed -e 's/.*\.v//; s/"//'`
 
 echo -e "${_bold_}Detected versions:${_norm_}
@@ -318,10 +332,20 @@ echo "${_bold_}Creating must-gather for ACM to '${DIR}/acm/'${_norm_}"
 if [ "XXX$DRY_RUN" == "XXXyes" ];
 then
 	echo "mkdir -p \"${DIR}/acm/\""
-	echo "oc adm must-gather ${LONGRUN} --image=\"${ACM_IMAGE}\" --dest-dir=\"${DIR}/acm/\" &> \"${DIR}/acm-must-gather.log\""
+	echo "oc adm must-gather ${LONGRUN} --image=\"${ACM_IMAGE}\" --dest-dir=\"${DIR}/acm/\" |& tee \"${DIR}/acm-must-gather.log\" | grep -q -m 1 'OUT gather did not start: unable to pull image: ImagePullBackOff: Back-off pulling image'"
 else
 	mkdir -p "${DIR}/acm/"
-	oc adm must-gather ${LONGRUN} --image="${ACM_IMAGE}" --dest-dir="${DIR}/acm/" &> "${DIR}/acm-must-gather.log"
+	oc adm must-gather ${LONGRUN} --image="${ACM_IMAGE}" --dest-dir="${DIR}/acm/" |& tee "${DIR}/acm-must-gather.log" | grep -q -m 1 'OUT gather did not start: unable to pull image: ImagePullBackOff: Back-off pulling image'
+
+	if [ $? -eq 0 ];
+	then
+		echo "---------------------------------------------"
+		echo "Unable to download image \"acm-must-gather-rhel8:v${ACM_CHANNEL#release-}\" from registry \"${REGISTRY}\""
+		echo "Please, use ${_bold_}-r${_norm_} parameter to specify your registry and run script again"
+		echo "For details, please use '$0 -h'"
+		echo "---------------------------------------------"
+		exit 10
+	fi
 fi
 
 echo "${_bold_}ACM must-gather done${_norm_}"
@@ -336,7 +360,17 @@ then
 		echo "oc adm must-gather ${LONGRUN} --image=\"${MCE_IMAGE}\" --dest-dir=\"${DIR}/mce/\" &> \"${DIR}/mce-must-gather.log\""
 	else
 		mkdir -p "${DIR}/mce/"
-		oc adm must-gather ${LONGRUN} --image="${MCE_IMAGE}" --dest-dir="${DIR}/mce/" &> "${DIR}/mce-must-gather.log"
+		oc adm must-gather ${LONGRUN} --image="${MCE_IMAGE}" --dest-dir="${DIR}/mce/" |& tee "${DIR}/mce-must-gather.log" | grep -q -m 1 'OUT gather did not start: unable to pull image: ImagePullBackOff: Back-off pulling image'
+
+		if [ $? -eq 0 ];
+		then
+			echo "---------------------------------------------"
+			echo "Unable to download image \"multicluster-engine/must-gather-rhel8:v2.X\" from registry \"${REGISTRY}\""
+			echo "Please, use ${_bold_}-r${_norm_} parameter to specify your registry and run script again"
+			echo "For details, please use '$0 -h'"
+			echo "---------------------------------------------"
+			exit 10
+		fi
 	fi
 
 	echo "${_bold_}MCE must-gather done${_norm_}"
