@@ -10,18 +10,14 @@ _red_="${Esc}[0;31m" #set red
 _boldred_="${Esc}[0;1;31m" #set bold and red.
 
 REL24=99
-REL25=9
+REL25=99
 REL26=6
-REL27=4
-REL28=0
+REL27=7
+REL28=1
 
-MCEFIX25=7
-MCEFIX26=5
-MCEFIX27=3
-
-GENERATION=1687176791
+GENERATION=1693472605
 RETIRED=7689599
-VERSION="1.3"
+VERSION="1.4"
 SOURCE="https://github.com/C-RH-C/ACM-MCE-must-gather/blob/main/acm_create-must-gather.sh"
 
 isretired() {
@@ -72,18 +68,11 @@ isupdate() {
 					UPDOC="Upgrade to 2.5 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.5/html/install/index"
 				;;
 				5)
-					echo "THIS VERSION WILL BE EOL SOON, PLEASE UPGRADE TO 2.6"
-					if [ "${ver[2]}" -lt "$REL25" ]; then
-						echo "Upgrade available to 2.5.$REL25 or 2.6"
-					else
-						echo "Upgrade available to 2.6"
-					fi
-					if [ "${ver[2]}" -lt "7" ]; then
-						AFFECTED_CVE_2023_29017="yes"
-					fi
+					echo "THIS VERSION IS NO LONGER SUPPORTED, PLEASE UPGRADE TO 2.6"
 					UPDOC="Upgrade to 2.6 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.6/html/install/index"
 				;;
 				6)
+					echo "THIS VERSION WIL BE EOL SOON, PLEASE UPGRADE TO 2.7"
 					if [ "${ver[2]}" -lt "$REL26" ]; then
 						echo "Upgrade available to 2.6.$REL26 or 2.7"
 					else 
@@ -143,39 +132,36 @@ mcemgimage() {
 
 	ENFORCE="$2"
 
-	#echo ">>>$1>>>${ver[0]}>${ver[1]}>${ver[2]}>" >&2
 	case ${ver[0]} in
 		2)
+			VERSION='-'
 			case ${ver[1]} in
-				4) echo '-'
+				4) VERSION='-'
 				;;
-				5) if [ "${ver[2]}" -lt "$MCEFIX25" -o "x${ENFORCE}" == "xyes" ]; then
-					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.0"
-				   else
-					echo '-'
+				5) VERSION="2.0"
+				;;
+				6) if [ "x${ENFORCE}" == "xyes" ]; then
+					VERSION="2.1"
 				   fi
 				;;
-				6) if [ "${ver[2]}" -lt "$MCEFIX26" -o "x${ENFORCE}" == "xyes" ]; then
-					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.1"
-				   else
-					echo '-'
-				   fi
-				;;
-				7) if [ "${ver[2]}" -lt "$MCEFIX27" -o "x${ENFORCE}" == "xyes" ]; then
-					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.2"
-				   else
-					echo '-'
+				7) if [ "x${ENFORCE}" == "xyes" ]; then
+					VERSION="2.2"
 				   fi
 				;;
 				8) if [ "x${ENFORCE}" == "xyes" ]; then
-					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.3"
-				   else
-					echo '-'
+					VERSION="2.3"
 				   fi
 				;;
-				*) echo '-'
+				*) VERSION='-'
 				;;
 			esac
+
+			if [ "x${VERSION}" == "x-" ]; then
+				echo '-'
+			else
+				echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v${VERSION}"
+			fi
+	
 		;;
 		*)
 			echo "-"
