@@ -10,14 +10,18 @@ _red_="${Esc}[0;31m" #set red
 _boldred_="${Esc}[0;1;31m" #set bold and red.
 
 REL24=99
-REL25=99
+REL25=9
 REL26=6
-REL27=7
-REL28=1
+REL27=4
+REL28=0
 
-GENERATION=1693472605
+MCEFIX25=7
+MCEFIX26=5
+MCEFIX27=3
+
+GENERATION=1687176791
 RETIRED=7689599
-VERSION="1.4"
+VERSION="1.2"
 SOURCE="https://github.com/C-RH-C/ACM-MCE-must-gather/blob/main/acm_create-must-gather.sh"
 
 isretired() {
@@ -68,7 +72,15 @@ isupdate() {
 					UPDOC="Upgrade to 2.5 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.5/html/install/index"
 				;;
 				5)
-					echo "THIS VERSION IS NO LONGER SUPPORTED, PLEASE UPGRADE TO 2.6"
+					echo "THIS VERSION WILL BE EOL SOON, PLEASE UPGRADE TO 2.6"
+					if [ "${ver[2]}" -lt "$REL25" ]; then
+						echo "Upgrade available to 2.5.$REL25 or 2.6"
+					else
+						echo "Upgrade available to 2.6"
+					fi
+					if [ "${ver[2]}" -lt "7" ]; then
+						AFFECTED_CVE_2023_29017="yes"
+					fi
 					UPDOC="Upgrade to 2.6 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.6/html/install/index"
 				;;
 				6)
@@ -138,14 +150,22 @@ mcemgimage() {
 			case ${ver[1]} in
 				4) VERSION='-'
 				;;
-				5) VERSION="2.0"
-				;;
-				6) if [ "x${ENFORCE}" == "xyes" ]; then
-					VERSION="2.1"
+				5) if [ "${ver[2]}" -lt "$MCEFIX25" ]; then
+					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.0"
+				   else
+					echo '-'
 				   fi
 				;;
-				7) if [ "x${ENFORCE}" == "xyes" ]; then
-					VERSION="2.2"
+				6) if [ "${ver[2]}" -lt "$MCEFIX26" ]; then
+					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.1"
+				   else
+					echo '-'
+				   fi
+				;;
+				7) if [ "${ver[2]}" -lt "$MCEFIX27" ]; then
+					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.2"
+				   else
+					echo '-'
 				   fi
 				;;
 				8) if [ "x${ENFORCE}" == "xyes" ]; then
@@ -176,15 +196,8 @@ REGISTRY='registry.redhat.io'
 OWNREGISTRY='-'
 SUBCTL='-'
 LONGRUN=''
-MCE_ENFORCE='-'
 
-###
-#
-# Parameter -M not documented, enforce creating MCE m-g
-#
-###
-
-while getopts tsMd:m:r:l:h flag
+while getopts tsd:m:r:l:h flag
 do
     case "${flag}" in
         t) DRY_RUN=yes;;
@@ -199,7 +212,6 @@ do
 	   ;;
 	s) SUBCTL=yes;;
 	l) LONGRUN="--request-timeout=${OPTARG}";;
-	M) MCE_ENFORCE='yes';;
     esac
 done
 
@@ -318,20 +330,10 @@ echo "${_bold_}Creating must-gather for ACM to '${DIR}/acm/'${_norm_}"
 if [ "XXX$DRY_RUN" == "XXXyes" ];
 then
 	echo "mkdir -p \"${DIR}/acm/\""
-	echo "oc adm must-gather ${LONGRUN} --image=\"${ACM_IMAGE}\" --dest-dir=\"${DIR}/acm/\" |& tee \"${DIR}/acm-must-gather.log\" | grep -q -m 1 'OUT gather did not start: unable to pull image: ImagePullBackOff: Back-off pulling image'"
+	echo "oc adm must-gather ${LONGRUN} --image=\"${ACM_IMAGE}\" --dest-dir=\"${DIR}/acm/\" &> \"${DIR}/acm-must-gather.log\""
 else
 	mkdir -p "${DIR}/acm/"
-	oc adm must-gather ${LONGRUN} --image="${ACM_IMAGE}" --dest-dir="${DIR}/acm/" |& tee "${DIR}/acm-must-gather.log" | grep -q -m 1 'OUT gather did not start: unable to pull image: ImagePullBackOff: Back-off pulling image'
-
-	if [ $? -eq 0 ];
-	then
-		echo "---------------------------------------------"
-		echo "Unable to download image \"acm-must-gather-rhel8:v${ACM_CHANNEL#release-}\" from registry \"${REGISTRY}\""
-		echo "Please, use ${_bold_}-r${_norm_} parameter to specify your registry and run script again"
-		echo "For details, please use '$0 -h'"
-		echo "---------------------------------------------"
-		exit 10
-	fi
+	oc adm must-gather ${LONGRUN} --image="${ACM_IMAGE}" --dest-dir="${DIR}/acm/" &> "${DIR}/acm-must-gather.log"
 fi
 
 echo "${_bold_}ACM must-gather done${_norm_}"
@@ -346,17 +348,7 @@ then
 		echo "oc adm must-gather ${LONGRUN} --image=\"${MCE_IMAGE}\" --dest-dir=\"${DIR}/mce/\" &> \"${DIR}/mce-must-gather.log\""
 	else
 		mkdir -p "${DIR}/mce/"
-		oc adm must-gather ${LONGRUN} --image="${MCE_IMAGE}" --dest-dir="${DIR}/mce/" |& tee "${DIR}/mce-must-gather.log" | grep -q -m 1 'OUT gather did not start: unable to pull image: ImagePullBackOff: Back-off pulling image'
-
-		if [ $? -eq 0 ];
-		then
-			echo "---------------------------------------------"
-			echo "Unable to download image \"multicluster-engine/must-gather-rhel8:v2.X\" from registry \"${REGISTRY}\""
-			echo "Please, use ${_bold_}-r${_norm_} parameter to specify your registry and run script again"
-			echo "For details, please use '$0 -h'"
-			echo "---------------------------------------------"
-			exit 10
-		fi
+		oc adm must-gather ${LONGRUN} --image="${MCE_IMAGE}" --dest-dir="${DIR}/mce/" &> "${DIR}/mce-must-gather.log"
 	fi
 
 	echo "${_bold_}MCE must-gather done${_norm_}"
