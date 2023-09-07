@@ -84,6 +84,7 @@ isupdate() {
 					UPDOC="Upgrade to 2.6 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.6/html/install/index"
 				;;
 				6)
+					echo "THIS VERSION WIL BE EOL SOON, PLEASE UPGRADE TO 2.7"
 					if [ "${ver[2]}" -lt "$REL26" ]; then
 						echo "Upgrade available to 2.6.$REL26 or 2.7"
 					else 
@@ -141,11 +142,13 @@ mcemgimage() {
 	IFS='.'
 	read -r -a ver <<< "$1"
 
-	#echo ">>>$1>>>${ver[0]}>${ver[1]}>${ver[2]}>" >&2
+	ENFORCE="$2"
+
 	case ${ver[0]} in
 		2)
+			VERSION='-'
 			case ${ver[1]} in
-				4) echo '-'
+				4) VERSION='-'
 				;;
 				5) if [ "${ver[2]}" -lt "$MCEFIX25" ]; then
 					echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v2.0"
@@ -165,11 +168,20 @@ mcemgimage() {
 					echo '-'
 				   fi
 				;;
-				8) echo '-'
+				8) if [ "x${ENFORCE}" == "xyes" ]; then
+					VERSION="2.3"
+				   fi
 				;;
-				*) echo '-'
+				*) VERSION='-'
 				;;
 			esac
+
+			if [ "x${VERSION}" == "x-" ]; then
+				echo '-'
+			else
+				echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v${VERSION}"
+			fi
+	
 		;;
 		*)
 			echo "-"
@@ -276,7 +288,7 @@ case ${ACM_CHANNEL:0:11} in
 	;;
 esac
 
-MCE_IMAGE=`mcemgimage $ACM_VERSION`
+MCE_IMAGE=`mcemgimage $ACM_VERSION $MCE_ENFORCE`
 MCE_VERSION=`oc get subs -n multicluster-engine multicluster-engine -o json 2>/dev/null | jq '.status.currentCSV' | sed -e 's/.*\.v//; s/"//'`
 
 echo -e "${_bold_}Detected versions:${_norm_}
