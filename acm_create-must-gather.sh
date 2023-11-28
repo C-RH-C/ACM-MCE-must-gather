@@ -11,13 +11,14 @@ _boldred_="${Esc}[0;1;31m" #set bold and red.
 
 REL24=99
 REL25=99
-REL26=6
-REL27=7
-REL28=1
+REL26=7
+REL27=9
+REL28=2
+REL29=1
 
-GENERATION=1693472605
+GENERATION=1701180163
 RETIRED=7689599
-VERSION="1.4"
+VERSION="1.5"
 SOURCE="https://github.com/C-RH-C/ACM-MCE-must-gather/blob/main/acm_create-must-gather.sh"
 
 isretired() {
@@ -100,6 +101,16 @@ isupdate() {
 					if [ "${ver[2]}" -lt "$REL28" ]; then
 						echo "Upgrade available to 2.8.$REL28"
 						UPDOC=""
+					else
+						echo "Upgrade available to 2.9"	
+					fi
+					UPDOC="Upgrade to 2.9 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.9/html/install/index"
+
+				;;
+				9)
+					if [ "${ver[2]}" -lt "$REL29" ]; then
+						echo "Upgrade available to 2.9.$REL29"
+						UPDOC=""
 					fi
 				;;
 				*)
@@ -150,6 +161,10 @@ mcemgimage() {
 				;;
 				8) if [ "x${ENFORCE}" == "xyes" ]; then
 					VERSION="2.3"
+				   fi
+				;;
+				9) if [ "x${ENFORCE}" == "xyes" ]; then
+					VERSION="2.4"
 				   fi
 				;;
 				*) VERSION='-'
