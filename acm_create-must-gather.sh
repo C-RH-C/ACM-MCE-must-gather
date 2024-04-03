@@ -12,13 +12,14 @@ _boldred_="${Esc}[0;1;31m" #set bold and red.
 REL24=99
 REL25=99
 REL26=99
-REL27=11
+REL27=12
 REL28=5
-REL29=2
+REL29=3
+REL210=0
 
-GENERATION=1707486533
+GENERATION=1712140662
 RETIRED=7689599
-VERSION="1.6"
+VERSION="1.7"
 SOURCE="https://github.com/C-RH-C/ACM-MCE-must-gather/blob/main/acm_create-must-gather.sh"
 
 isretired() {
@@ -103,6 +104,16 @@ isupdate() {
 					if [ "${ver[2]}" -lt "$REL29" ]; then
 						echo "Upgrade available to 2.9.$REL29"
 						UPDOC=""
+					else
+						echo "Upgrade available to 2.10"	
+					fi
+					UPDOC="Upgrade to 2.10 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.10/html/install/index"
+
+				;;
+				10)
+					if [ "${ver[2]}" -lt "$REL10" ]; then
+						echo "Upgrade available to 2.10.$REL210"
+						UPDOC=""
 					fi
 				;;
 				*)
@@ -157,6 +168,10 @@ mcemgimage() {
 				;;
 				9) if [ "x${ENFORCE}" == "xyes" ]; then
 					VERSION="2.4"
+				   fi
+				;;
+				10) if [ "x${ENFORCE}" == "xyes" ]; then
+					VERSION="2.5"
 				   fi
 				;;
 				*) VERSION='-'
@@ -278,7 +293,7 @@ MCE_IMAGE="-"
 MCE_VERSION="-"
 
 case ${ACM_CHANNEL:0:11} in
-	release-2.4|release-2.5|release-2.6|release-2.7|release-2.8|release-2.9)
+	release-2.4|release-2.5|release-2.6|release-2.7|release-2.8|release-2.9|release-2.10)
 		ACM_IMAGE="${REGISTRY}/rhacm2/acm-must-gather-rhel8:v${ACM_CHANNEL#release-}"
 	;;
 esac
