@@ -111,7 +111,11 @@ isupdate() {
 
 				;;
 				10)
+<<<<<<< HEAD
 					if [ "${ver[2]}" -lt "$REL210" ]; then
+=======
+					if [ "${ver[2]}" -lt "$REL10" ]; then
+>>>>>>> 785c188 (Added support for latest releases - 2.10, 2.9.3, 2.7.12)
 						echo "Upgrade available to 2.10.$REL210"
 						UPDOC=""
 					fi
@@ -176,6 +180,10 @@ mcemgimage() {
 				;;
 				9) if [ "x${ENFORCE}" == "xyes" ]; then
 					VERSION="2.4"
+				   fi
+				;;
+				10) if [ "x${ENFORCE}" == "xyes" ]; then
+					VERSION="2.5"
 				   fi
 				;;
 				*) VERSION='-'
