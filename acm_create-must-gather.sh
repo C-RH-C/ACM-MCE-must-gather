@@ -11,14 +11,15 @@ _boldred_="${Esc}[0;1;31m" #set bold and red.
 
 REL24=99
 REL25=99
-REL26=7
-REL27=9
-REL28=2
-REL29=1
+REL26=99
+REL27=12
+REL28=5
+REL29=3
+REL210=0
 
-GENERATION=1701180163
+GENERATION=1712140662
 RETIRED=7689599
-VERSION="1.5"
+VERSION="1.7"
 SOURCE="https://github.com/C-RH-C/ACM-MCE-must-gather/blob/main/acm_create-must-gather.sh"
 
 isretired() {
@@ -73,15 +74,7 @@ isupdate() {
 					UPDOC="Upgrade to 2.6 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.6/html/install/index"
 				;;
 				6)
-					echo "THIS VERSION WIL BE EOL SOON, PLEASE UPGRADE TO 2.7"
-					if [ "${ver[2]}" -lt "$REL26" ]; then
-						echo "Upgrade available to 2.6.$REL26 or 2.7"
-					else 
-						echo "Upgrade available to 2.7"
-					fi
-					if [ "${ver[2]}" -lt "4" ]; then
-						AFFECTED_CVE_2023_29017="yes"
-					fi
+					echo "THIS VERSION IS NO LONGER SUPPORTED, PLEASE UPGRADE TO 2.7"
 					UPDOC="Upgrade to 2.7 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.7/html/install/index"
 				;;
 				7)
@@ -110,6 +103,16 @@ isupdate() {
 				9)
 					if [ "${ver[2]}" -lt "$REL29" ]; then
 						echo "Upgrade available to 2.9.$REL29"
+						UPDOC=""
+					else
+						echo "Upgrade available to 2.10"	
+					fi
+					UPDOC="Upgrade to 2.10 version: https://access.redhat.com/documentation/en-us/red_hat_advanced_cluster_management_for_kubernetes/2.10/html/install/index"
+
+				;;
+				10)
+					if [ "${ver[2]}" -lt "$REL10" ]; then
+						echo "Upgrade available to 2.10.$REL210"
 						UPDOC=""
 					fi
 				;;
@@ -165,6 +168,10 @@ mcemgimage() {
 				;;
 				9) if [ "x${ENFORCE}" == "xyes" ]; then
 					VERSION="2.4"
+				   fi
+				;;
+				10) if [ "x${ENFORCE}" == "xyes" ]; then
+					VERSION="2.5"
 				   fi
 				;;
 				*) VERSION='-'
@@ -286,7 +293,7 @@ MCE_IMAGE="-"
 MCE_VERSION="-"
 
 case ${ACM_CHANNEL:0:11} in
-	release-2.4|release-2.5|release-2.6|release-2.7|release-2.8)
+	release-2.4|release-2.5|release-2.6|release-2.7|release-2.8|release-2.9|release-2.10)
 		ACM_IMAGE="${REGISTRY}/rhacm2/acm-must-gather-rhel8:v${ACM_CHANNEL#release-}"
 	;;
 esac
