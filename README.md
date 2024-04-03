@@ -5,7 +5,7 @@ Script to automate process of creating must-gather for RHACM support,
 This script checks ACM and MCE version and create proper must-gathers
 for support team. This script is aimed to run on HUB or managed cluster now.
 
-Works with ACM version 2.4, 2.5, 2.6, 2.7, 2.8 and 2.9
+Works with ACM version 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 2.10
 
 ## Disclaimer:
 
