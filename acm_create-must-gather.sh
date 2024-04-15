@@ -19,7 +19,7 @@ REL210=0
 
 GENERATION=1712140662
 RETIRED=7689599
-VERSION="1.7"
+VERSION="1.7.1"
 SOURCE="https://github.com/C-RH-C/ACM-MCE-must-gather/blob/main/acm_create-must-gather.sh"
 
 isretired() {
