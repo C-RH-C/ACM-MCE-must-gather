@@ -174,6 +174,10 @@ mcemgimage() {
 					VERSION="9:v2.5"
 				   fi
 				;;
+				10) if [ "x${ENFORCE}" == "xyes" ]; then
+					VERSION="2.5"
+				   fi
+				;;
 				*) VERSION='-'
 				;;
 			esac
