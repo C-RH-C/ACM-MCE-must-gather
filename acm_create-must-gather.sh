@@ -111,7 +111,7 @@ isupdate() {
 
 				;;
 				10)
-					if [ "${ver[2]}" -lt "$REL10" ]; then
+					if [ "${ver[2]}" -lt "$REL210" ]; then
 						echo "Upgrade available to 2.10.$REL210"
 						UPDOC=""
 					fi
@@ -152,26 +152,26 @@ mcemgimage() {
 			case ${ver[1]} in
 				4) VERSION='-'
 				;;
-				5) VERSION="2.0"
+				5) VERSION="8:v2.0"
 				;;
 				6) if [ "x${ENFORCE}" == "xyes" ]; then
-					VERSION="2.1"
+					VERSION="8:v2.1"
 				   fi
 				;;
 				7) if [ "x${ENFORCE}" == "xyes" ]; then
-					VERSION="2.2"
+					VERSION="8:v2.2"
 				   fi
 				;;
 				8) if [ "x${ENFORCE}" == "xyes" ]; then
-					VERSION="2.3"
+					VERSION="8:v2.3"
 				   fi
 				;;
 				9) if [ "x${ENFORCE}" == "xyes" ]; then
-					VERSION="2.4"
+					VERSION="8:v2.4"
 				   fi
 				;;
 				10) if [ "x${ENFORCE}" == "xyes" ]; then
-					VERSION="2.5"
+					VERSION="9:v2.5"
 				   fi
 				;;
 				*) VERSION='-'
@@ -181,7 +181,7 @@ mcemgimage() {
 			if [ "x${VERSION}" == "x-" ]; then
 				echo '-'
 			else
-				echo "${REGISTRY}/multicluster-engine/must-gather-rhel8:v${VERSION}"
+				echo "${REGISTRY}/multicluster-engine/must-gather-rhel${VERSION}"
 			fi
 	
 		;;
@@ -292,14 +292,23 @@ ACM_IMAGE="UNSUPPORTED"
 MCE_IMAGE="-"
 MCE_VERSION="-"
 
-case ${ACM_CHANNEL:0:11} in
-	release-2.4|release-2.5|release-2.6|release-2.7|release-2.8|release-2.9|release-2.10)
+case ${ACM_CHANNEL:0:12} in
+	release-2.4|release-2.5|release-2.6|release-2.7|release-2.8|release-2.9)
 		ACM_IMAGE="${REGISTRY}/rhacm2/acm-must-gather-rhel8:v${ACM_CHANNEL#release-}"
+	;;
+	release-2.10)
+		ACM_IMAGE="${REGISTRY}/rhacm2/acm-must-gather-rhel9:v${ACM_CHANNEL#release-}"
 	;;
 esac
 
 MCE_IMAGE=`mcemgimage $ACM_VERSION $MCE_ENFORCE`
 MCE_VERSION=`oc get subs -n multicluster-engine multicluster-engine -o json 2>/dev/null | jq '.status.currentCSV' | sed -e 's/.*\.v//; s/"//'`
+
+if [ "XXX${MCE_VERSION}" == "XXXnull" ];
+then
+	MCE_VERSION=`oc get subs -n multicluster-engine multicluster-engine -o json | jq '.spec.channel' | sed -e 's/.*-\(.*\)"/\1/'`
+fi
+
 
 echo -e "${_bold_}Detected versions:${_norm_}
   ${_bold_}* This script:${_norm_} ${VERSION}-${GENERATION}
