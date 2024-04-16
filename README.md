@@ -58,11 +58,12 @@ The script is tested on Linux distributions.
 
 ## Known issues:
   * ~~Not tested on non-HUB cluster for now.~~ - For collecting data from managed cluster, use `-m <ACM version>` option
-  * ~~Do not cover situation, when image for m-g is not available,~~ but
+  * ~~Do not cover situation, when image for m-g is not available, but
     this can be checked from `oc adm must-gather ...` output in specified
-    dir (acm-must-gather.log and mce-must-gather.log).
+    dir (acm-must-gather.log and mce-must-gather.log).~~
     * It is possible to specify own image registry via `-r` parameter
+    * FIXED, script fails with error message if image is not available.
 
 ## TODO:
-  * when executed on HUB cluster, show message like "This script gather data from HUB cluster now. If your issue with ACM affects some managed cluster, please run this script to gather data from managed cluster too." - done
+  * ~~when executed on HUB cluster, show message like "This script gather data from HUB cluster now. If your issue with ACM affects some managed cluster, please run this script to gather data from managed cluster too."~~ - done
   * ~~Add functionality to collect data for submariner support~~ - use `-s` parameter to collect submariner data
